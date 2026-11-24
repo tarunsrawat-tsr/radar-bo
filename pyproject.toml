@@ -1,0 +1,22 @@
+[project]
+name = "radar-bo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "tarunsrawattsr", email = "tarunsrawat.tsr+github@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "botorch>=0.18.1",
+    "dataclasses>=0.8",
+    "numpy>=2.4.6",
+    "pydantic>=2.14.4",
+]
+
+[project.scripts]
+radar-bo = "radar_bo:main"
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
