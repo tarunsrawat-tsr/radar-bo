@@ -21,7 +21,10 @@ param = {
     "phase_delay":0,
     "time_duration_per_beam": 0,
     "boltzmann_constant":0,
-    "system_temp": 0
+    "system_temp": 0,
+    "tradeoff_coeff": 1e6,
+    "intended_region": 100,
+    "monte-carlo_sims": 1e10,
 }
 
 def transition_matrix(
@@ -70,7 +73,6 @@ def maneuverability_noise(
     cov = maneuverability_covariance(revisit_interval)
     wt = np.random.multivariate_normal(mean, cov).reshape(4,1)
     return wt
-
 
 def SNR(
         target: Target,
@@ -266,10 +268,37 @@ def SNR_scan(
     snr_scan = numerator/denominator
     return snr_scan
 
-def maximum_detectable_range():
+def maximum_detectable_range(
+        target: Target,
+        radar: Radar,
+    ):
     """ Maximum radius the radar can cover eq(20) """
     numerator = param["peak_transmittion_power"] * param["time_duration_per_beam"] * param["transmit_antenna_gain"] * param["receiver_antenna_gain"] * (param["radar_wavelength"] ** 2) * param["cross_section"]
-    denominator = ((4 * np.pi) ** 3) * param["loss_factor"] * param["boltzmann_constant"] * param["system_temp"] * SNR_scan()
+    denominator = ((4 * np.pi) ** 3) * param["loss_factor"] * param["boltzmann_constant"] * param["system_temp"] * SNR_scan(target=target, radar=radar)
     r4 = numerator/denominator
     r = (r4) ** (1/4)
     return r
+
+def scanning_cost(
+        target: Target,
+        radar: Radar
+    ):
+    """ Compute total cost of scanning a circular area """
+    R = maximum_detectable_range(target=target, radar=radar)
+    s_max = np.pi * (R ** 2)
+    s_0 = param["intended_region"]
+    return (s_max/s_0)
+
+def objective_function(
+        targets: list
+    ):
+    """ Defines objective function """
+    track_cost = 0
+    for target in targets:
+        ct = tracking_cost(target=target)
+        wt = target.priority
+        track_cost += (wt * ct)
+
+    scan_cost = param["tradeoff_coeff"] * scanning_cost()
+    total_cost = -track_cost + scan_cost
+    return total_cost
